@@ -1,4 +1,5 @@
 murach\email\EmailListServlet.class
+murach\util\MailUtilGmail$1.class
 com\mycompany\guimail\resources\JakartaEE10Resource.class
 murach\business\User.class
 murach\util\MailUtilGmail.class

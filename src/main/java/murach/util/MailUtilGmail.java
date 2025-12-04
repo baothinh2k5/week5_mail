@@ -1,8 +1,8 @@
 package murach.util;
 
 import java.util.Properties;
-import jakarta.mail.*;             // Đã đổi từ javax
-import jakarta.mail.internet.*;    // Đã đổi từ javax
+import jakarta.mail.*;
+import jakarta.mail.internet.*;
 
 public class MailUtilGmail {
 
@@ -10,45 +10,44 @@ public class MailUtilGmail {
             String subject, String body, boolean bodyIsHTML)
             throws MessagingException {
 
-        // 1 - Cấu hình pha (Session)
         Properties props = new Properties();
-        props.put("mail.transport.protocol", "smtps");
-        props.put("mail.smtps.host", "smtp.gmail.com");
-        props.put("mail.smtps.port", "587");
-        props.put("mail.smtps.auth", "true");
-        props.put("mail.smtps.quitwait", "false");
-        
-        Session session = Session.getDefaultInstance(props);
-        session.setDebug(true); // Bật log để xem quá trình gửi
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.host", "smtp.sendgrid.net");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
 
-        // 2 - Tạo tin nhắn (Message)
+        Authenticator authenticator = new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                // ========================================================
+                // DÁN KEY CỦA BẠN VÀO GIỮA 2 DẤU NGOẶC KÉP Ở DƯỚI
+                // ========================================================
+                String apiKey = "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"; 
+                
+                return new PasswordAuthentication("apikey", apiKey);
+            }
+        };
+
+        Session session = Session.getInstance(props, authenticator);
+        
+        // Bỏ comment dòng dưới nếu muốn xem log chi tiết khi gửi lỗi
+        session.setDebug(true); 
+
         Message message = new MimeMessage(session);
         message.setSubject(subject);
         
         if (bodyIsHTML) {
-            // Quan trọng: Thêm charset=UTF-8 để hiển thị tiếng Việt
             message.setContent(body, "text/html; charset=UTF-8");
         } else {
             message.setText(body);
         }
 
-        // 3 - Thiết lập địa chỉ
-        // Lưu ý: Gmail thường sẽ tự động ghi đè "From" bằng email đăng nhập thực tế
         Address fromAddress = new InternetAddress(from);
         Address toAddress = new InternetAddress(to);
         message.setFrom(fromAddress);
         message.setRecipient(Message.RecipientType.TO, toAddress);
 
-        // 4 - Kết nối và gửi (Transport)
-        Transport transport = session.getTransport();
-        
-        // --- PHẦN QUAN TRỌNG NHẤT ---
-        // Bạn phải thay đổi 2 dòng dưới đây bằng thông tin thật của bạn
-        String myEmail = "coixoaygio1999@gmail.com"; 
-        String myAppPassword = "tvxs gyoa cbhk yapq"; // KHÔNG PHẢI MẬT KHẨU ĐĂNG NHẬP
-        
-        transport.connect(myEmail, myAppPassword);
-        transport.sendMessage(message, message.getAllRecipients());
-        transport.close();
+        Transport.send(message);
     }
 }
