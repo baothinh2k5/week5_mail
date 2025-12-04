@@ -32,7 +32,7 @@ public class MailUtilGmail {
         Session session = Session.getInstance(props, authenticator);
         
         // Bỏ comment dòng dưới nếu muốn xem log chi tiết khi gửi lỗi
-        session.setDebug(true); 
+        //session.setDebug(true); 
 
         Message message = new MimeMessage(session);
         message.setSubject(subject);
