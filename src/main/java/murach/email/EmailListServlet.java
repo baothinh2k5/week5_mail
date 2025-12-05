@@ -16,6 +16,17 @@ public class EmailListServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
+                // Thêm vào đầu hàm doPost
+        System.out.println("=== DEBUG START ===");
+        String envKey = System.getenv("SENDGRID_API_KEY");
+
+        if (envKey == null) {
+            System.out.println("FATAL: Biến môi trường SENDGRID_API_KEY là NULL");
+        } else {
+            System.out.println("INFO: Đã tìm thấy Key. Độ dài key: " + envKey.length());
+            System.out.println("INFO: 4 ký tự đầu: " + envKey.substring(0, 4) + "..."); // Chỉ in 4 ký tự đầu để check
+        }
+        System.out.println("=== DEBUG END ===");
 
         // Lấy hành động hiện tại
         String action = request.getParameter("action");

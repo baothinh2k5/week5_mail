@@ -30,4 +30,4 @@ COPY --from=build /app/target/*.war /usr/local/tomcat/webapps/ROOT.war
 EXPOSE 8080
 
 # 4. Chạy Tomcat
-CMD ["catalina.sh", "run"]
+CMD ["sh", "-c", "catalina.sh run"]
