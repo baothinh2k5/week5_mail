@@ -1,53 +1,50 @@
 package murach.util;
 
-import java.util.Properties;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import com.sendgrid.*;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
+import java.io.IOException;
 
 public class MailUtilGmail {
 
-    public static void sendMail(String to, String from,
-            String subject, String body, boolean bodyIsHTML)
-            throws MessagingException {
-
-        Properties props = new Properties();
-        props.put("mail.transport.protocol", "smtp");
-        props.put("mail.smtp.host", "smtp.sendgrid.net");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-
-        Authenticator authenticator = new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                // ========================================================
-                // DÁN KEY CỦA BẠN VÀO GIỮA 2 DẤU NGOẶC KÉP Ở DƯỚI
-                // ========================================================
-                String apiKey = "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"; 
-                
-                return new PasswordAuthentication("apikey", apiKey);
-            }
-        };
-
-        Session session = Session.getInstance(props, authenticator);
+    public static void sendMail(String to, String from, String subject, String body, boolean bodyIsHTML) throws IOException {
         
-        // Bỏ comment dòng dưới nếu muốn xem log chi tiết khi gửi lỗi
-        //session.setDebug(true); 
-
-        Message message = new MimeMessage(session);
-        message.setSubject(subject);
-        
-        if (bodyIsHTML) {
-            message.setContent(body, "text/html; charset=UTF-8");
-        } else {
-            message.setText(body);
+        // Lấy API Key từ biến môi trường
+        final String sendGridApiKey = System.getenv("SENDGRID_API_KEY");
+//        final String sendGridApiKey = "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";
+        if (sendGridApiKey == null || sendGridApiKey.isEmpty()) {
+            System.out.println("ERROR: SENDGRID_API_KEY chưa được cấu hình!");
+            throw new IOException("SENDGRID_API_KEY environment variable is not set.");
         }
 
-        Address fromAddress = new InternetAddress(from);
-        Address toAddress = new InternetAddress(to);
-        message.setFrom(fromAddress);
-        message.setRecipient(Message.RecipientType.TO, toAddress);
+        Email fromEmail = new Email(from);
+        Email toEmail = new Email(to);
+        Content content = new Content(bodyIsHTML ? "text/html" : "text/plain", body);
+        
+        Mail mail = new Mail(fromEmail, subject, toEmail, content);
 
-        Transport.send(message);
+        SendGrid sg = new SendGrid(sendGridApiKey);
+        Request request = new Request();
+        
+        try {
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            
+            Response response = sg.api(request);
+            
+            System.out.println("SendGrid Status Code: " + response.getStatusCode());
+            
+            // SendGrid trả về 2xx cho thành công
+            if (response.getStatusCode() >= 300) {
+                System.out.println("SendGrid Body: " + response.getBody());
+                throw new IOException("Failed to send email via SendGrid. Status: " + response.getStatusCode() + " Body: " + response.getBody());
+            }
+            
+        } catch (IOException ex) {
+            System.out.println("Error sending email: " + ex.getMessage());
+            throw ex;
+        }
     }
 }

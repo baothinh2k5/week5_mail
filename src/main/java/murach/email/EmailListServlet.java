@@ -1,16 +1,15 @@
 package murach.email;
 
 import java.io.*;
-import jakarta.servlet.*;           // Đã đổi từ javax
-import jakarta.servlet.http.*;      // Đã đổi từ javax
-import jakarta.servlet.annotation.*; // Thêm annotation để không cần sửa web.xml
-import jakarta.mail.MessagingException; // Đã đổi từ javax
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import jakarta.servlet.annotation.*;
 
 import murach.business.User;
 import murach.data.UserDB;
 import murach.util.MailUtilGmail;
 
-@WebServlet(urlPatterns = {"/emailList"}) // Map URL
+@WebServlet(urlPatterns = {"/emailList"})
 public class EmailListServlet extends HttpServlet {
 
     @Override
@@ -18,35 +17,35 @@ public class EmailListServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        // get current action
+        // Lấy hành động hiện tại
         String action = request.getParameter("action");
         if (action == null) {
-            action = "join";  // default action
+            action = "join";  // hành động mặc định
         }
 
-        // perform action and set URL to appropriate page
         String url = "/index.jsp";
         
         if (action.equals("join")) {
-            url = "/index.jsp";    // the "join" page
+            url = "/index.jsp";    // Trang tham gia
         } 
         else if (action.equals("add")) {
-            // get parameters from the request
+            // Lấy tham số từ request
             String firstName = request.getParameter("firstName");
             String lastName = request.getParameter("lastName");
             String email = request.getParameter("email");
 
-            // store data in User object
+            // Lưu dữ liệu vào đối tượng User
             User user = new User(firstName, lastName, email);
             
-            // Gọi hàm insert (Giả lập)
-            UserDB.insert(user);
+            // Giả lập lưu vào DB (Cần class UserDB)
+            // UserDB.insert(user);
             
             request.setAttribute("user", user);
 
-            // send email to user
+            // Cấu hình gửi mail
             String to = email;
-            String from = "coixoaygio1999@gmail.com";
+            // LƯU Ý: Email 'from' này PHẢI được xác thực trong SendGrid (Sender Identity)
+            String from = "coixoaygio1999@gmail.com"; 
             String subject = "Welcome to our email list";
             String body = "Dear " + firstName + ",\n\n" +
                 "Thanks for joining our email list. We'll make sure to send " +
@@ -54,32 +53,41 @@ public class EmailListServlet extends HttpServlet {
                 "Have a great day and thanks again!\n\n" +
                 "Kelly Slivkoff\n" +
                 "Mike Murach & Associates";
+            
+            // SendGrid hỗ trợ cả HTML và Text, ở đây ta để false (text thuần)
             boolean isBodyHTML = false;
 
             try {
-                // Gọi hàm gửi mail
+                // Gọi hàm gửi mail qua SendGrid API
                 MailUtilGmail.sendMail(to, from, subject, body, isBodyHTML);
-            } catch (MessagingException e) {
-                String errorMessage
-                        = "ERROR: Unable to send email. "
-                        + "Check Tomcat logs for details.<br>"
-                        + "NOTE: You may need to configure your system "
-                        + "as described in chapter 14.<br>"
+                
+                // Gửi thành công -> chuyển sang trang cảm ơn
+                url = "/thanks.jsp";
+                
+            } catch (IOException e) {
+                // BẮT LỖI IOException (Thay vì MessagingException cũ)
+                String errorMessage 
+                        = "ERROR: Unable to send email via SendGrid. <br>"
+                        + "Check Tomcat logs (console) for details.<br>"
                         + "ERROR MESSAGE: " + e.getMessage();
+                
                 request.setAttribute("errorMessage", errorMessage);
+                
+                // Ghi log lỗi vào server log
                 this.log(
-                        "Unable to send email. \n"
-                        + "Here is the email you tried to send: \n"
-                        + "=====================================\n"
+                        "Unable to send email via SendGrid. \n"
+                        + "Details: \n"
                         + "TO: " + email + "\n"
                         + "FROM: " + from + "\n"
-                        + "SUBJECT: " + subject + "\n"
-                        + "\n"
-                        + body + "\n\n");
+                        + "EXCEPTION: " + e.getMessage());
+                
+                // Vẫn chuyển sang trang thanks (hoặc trang error tùy logic của bạn)
+                // Thông thường nếu lỗi thì vẫn báo là đã đăng ký nhưng mail bị lỗi
+                url = "/thanks.jsp"; 
             }
-            url = "/thanks.jsp";
         }
         
+        // Chuyển hướng request/response
         getServletContext()
                 .getRequestDispatcher(url)
                 .forward(request, response);
